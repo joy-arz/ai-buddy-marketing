@@ -822,7 +822,7 @@ export default function GeneratorPage() {
         )}
       </div>
 
-      {/* Floating Action Button (FAB) for Chat (using MessageCircle icon) */}
+      {/* Floating Action Button (FAB) for Chat (using MessageCircle icon) */} 
       <div className="fixed bottom-8 right-8 z-20">
         <Button
           onClick={() => setShowChat(true)}
