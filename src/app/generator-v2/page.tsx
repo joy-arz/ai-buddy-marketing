@@ -1,6 +1,8 @@
+// src/app/generator/page.tsx
+
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,11 +16,12 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Copy, MessageCircle } from "lucide-react";
-import ChatPopup from "@/components/ChatPopup";
+import { Copy, Save } from "lucide-react"; // Removed MessageCircle as it's used in FAB
+import ChatPopup from "@/components/ChatPopup"; // Assuming you have this component
 
 export default function GeneratorPage() {
   const router = useRouter();
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false); // New state to track initial load
 
   // --- State for Setup Section ---
   const [businessType, setBusinessType] = useState("");
@@ -40,23 +43,43 @@ export default function GeneratorPage() {
 
   // --- Load Setup Data on Initial Render ---
   useEffect(() => {
-    console.log("useEffect running - checking localStorage...");
-    const savedData = localStorage.getItem("umkmData");
-    console.log("Found savedData in localStorage:", savedData);
+    const loadSetupData = () => {
+      try {
+        const savedData = localStorage.getItem("umkmData");
+        console.log("Found savedData in localStorage:", savedData); // Debug log
 
-    if (savedData) {
-      console.log("Data exists, parsing and setting state...");
-      const parsed = JSON.parse(savedData);
-      setBusinessType(parsed.businessType || "");
-      setTargetCustomer(parsed.targetCustomer || "");
-      setTone(parsed.tone || "");
-      setPlatform(parsed.platform || "");
-      setSetupComplete(true);
-      console.log("setupComplete set to TRUE inside useEffect"); // Debug log
-    } else {
-      console.log("No savedData found, setupComplete remains FALSE (initial state)"); // Debug log
-    }
-  }, []); // <-- Empty dependency array
+        if (savedData) {
+          console.log("Data exists, parsing and setting state..."); // Debug log
+          const parsed = JSON.parse(savedData);
+          // Defensive assignment: Check if properties exist before assigning
+          setBusinessType(parsed.businessType || "");
+          setTargetCustomer(parsed.targetCustomer || "");
+          setTone(parsed.tone || "");
+          setPlatform(parsed.platform || "");
+          setSetupComplete(true);
+          console.log("setupComplete set to TRUE inside useEffect"); // Debug log
+        } else {
+          console.log("No savedData found, setupComplete remains FALSE (initial state)"); // Debug log
+          setSetupComplete(false); // Explicitly set if no data
+        }
+      } catch (error) {
+        console.error("Error parsing saved setup data from localStorage:", error);
+        // If parsing fails, set default values and proceed
+        setBusinessType("");
+        setTargetCustomer("");
+        setTone("");
+        setPlatform("");
+        setSetupComplete(false);
+        // Optionally alert the user, though this might be disruptive on first load
+        // alert("Terjadi kesalahan saat memuat data setup sebelumnya. Silakan isi ulang.");
+      } finally {
+          // Mark the initial load as complete after attempting to load data
+          setInitialLoadComplete(true);
+      }
+    };
+
+    loadSetupData();
+  }, []);
 
   console.log("Component render - setupComplete state is:", setupComplete); // Debug log - This runs on every render
 
@@ -73,9 +96,14 @@ export default function GeneratorPage() {
       tone,
       platform,
     };
-    localStorage.setItem("umkmData", JSON.stringify(data));
-    setSetupComplete(true); 
-    console.log("setupComplete set to TRUE after saving setup data"); // Debug log
+    try {
+      localStorage.setItem("umkmData", JSON.stringify(data));
+      setSetupComplete(true);
+      console.log("setupComplete set to TRUE after saving setup data"); // Debug log
+    } catch (error) {
+        console.error("Error saving setup data to localStorage:", error);
+        alert("Terjadi kesalahan saat menyimpan data setup. Silakan coba lagi.");
+    }
   };
 
   // --- Handle Generation ---
@@ -104,11 +132,11 @@ export default function GeneratorPage() {
 
         ${
           useLocalDialect
-            ? "Bila 'True', Gunakan frasa atau gaya bahasa daerah Jawa untuk menjangkau pasar lokal."
+            ? "Silakan sertakan opsi frasa atau gaya bahasa daerah (Jawa/Sunda) jika relevan untuk menjangkau pasar lokal."
             : ""
         }
 
-        INGAT: Hasilkan KONTEN PEMASARAN BERIKUT DALAM FORMAT JSON YANG VALID. TIDAK ADA TEKS PENJELASAN SEBELUM ATAU SESUDAHNYA. TIDAK ADA KODE BLOK MARKDOWN. LANGSUNG KELUARKAN OBJEK JSONNYA SAJA. (Hasil generated content juga harus panjang sesuai dengan kebutuhan masing-masing bagian. minimal diatas 4 - 6 kalimat untuk setiap caption, deskripsi, dan sudut pandang marketing. Untuk ide visual, berikan deskripsi yang cukup detail untuk setiap ide konten visual, minimal 6 kalimat.)
+        Mohon hasilkan konten pemasaran berikut dalam format JSON (Penulisan konten harus diatas beberapa kalimat, hindari jawaban singkat):
         {
           "instagramCaptions": ["caption versi 1...", "caption versi 2...", "caption versi 3..."],
           "hashtags": ["#hashtag1", "#hashtag2", "#hashtag3", "#hashtag4", "#hashtag5"],
@@ -130,43 +158,59 @@ export default function GeneratorPage() {
             "otherPlatforms": "Ide visual atau teks untuk platform lain (TikTok, Marketplace, dll): ..."
           }
         }
-        Konten harus mengikuti tone yang diinginkan dan sesuai untuk target customer. Ide visual harus disertai dengan isi teks dan warna, serta style yang sesuai dengan tone.
-        Caption, deskripsi, sudut pandang marketing, dan ide konten visual harus orisinal dan tidak menjiplak dari sumber manapun, serta panjang sesuai kebutuhan.
-        Berikan jawaban dalam bahasa Indonesia bila opsi localDialect 'false' atau 'null'.
+        Berikan jawaban dalam bahasa Indonesia.
       `;
 
-      // Call Next.js API route
-      const response = await fetch('/api/cerebras', {
+      // Call Next.js API route for Cerebras
+      const response = await fetch('/api/cerebras', { // Ensure this path is correct
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           prompt: prompt,
-          model: 'gpt-oss-120b',
-          max_tokens: 2048,
-          temperature: 0.5,
+          model: 'gpt-oss-120b', // Ensure this model is correct for Cerebras
+          max_tokens: 1024,
+          temperature: 0.2,
+          top_p: 1,
         }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error("API Route Error:", errorData.error);
-        alert(`Terjadi kesalahan saat menghasilkan konten: ${errorData.error}`);
+        const errorData = await response.json().catch(e => {
+             // If response.json() fails (e.g., if response body is not JSON due to a server error page)
+             console.error("Failed to parse error response as JSON:", e);
+             return { error: `HTTP Error ${response.status}` }; // Provide a fallback error object
+        });
+        console.error("API Route Error (Status:", response.status, "):", errorData.error);
+        alert(`Terjadi kesalahan dari API rute (${response.status}): ${errorData.error}`);
         setLoading(false);
         return;
       }
 
-      const data = await response.json();
-      console.log("Raw API Response from Gemini Route:", data);
+      const data = await response.json().catch(e => {
+          // If the main response.json() fails (unlikely if response.ok is true, but good practice)
+          console.error("Failed to parse successful response as JSON:", e);
+          alert("Terjadi kesalahan saat memproses respons dari API. Silakan coba lagi.");
+          setLoading(false);
+          return null; // Return null to signal failure
+      });
 
-      // Attempt to parse the JSON response
+      if (data === null) {
+          // If parsing the main response failed, exit gracefully
+          return;
+      }
+
+      console.log("Raw API Response from Cerebras Route:", data);
+
+      // Attempt to parse the JSON response from the Cerebras API route
       let parsedResponse;
       try {
-         let aiText = data.response;
-         console.log("Raw AI Text from Gemini:", aiText); // Debug log
+         // The Cerebras API route should return the raw text from Cerebras in data.response
+         let aiText = data.response; // Ensure the API route returns { response: "..." }
+         console.log("Raw AI Text from Cerebras:", aiText); // Debug log
 
-         // Check if the AI returned an empty response object or non-string
+         // Defensive check: Ensure aiText is a string
          if (typeof aiText !== 'string') {
              console.error("AI returned a non-string response:", aiText);
              alert("AI mengembalikan format data yang tidak valid (bukan string). Silakan coba lagi.");
@@ -174,7 +218,7 @@ export default function GeneratorPage() {
              return;
          }
 
-         // Check if the AI returned an empty string
+         // Defensive check: Ensure aiText is not empty
          if (!aiText || aiText.trim() === "") {
              console.error("AI returned an empty response string.");
              alert("AI mengembalikan respons kosong. Silakan coba lagi.");
@@ -185,17 +229,18 @@ export default function GeneratorPage() {
          // Improved extraction: First, try to find a JSON code block
          const jsonMatch = aiText.match(/```json\s*\n?([\s\S]*?)\s*```/);
 
+         let textToParse = aiText; // Default to the whole text
          if (jsonMatch && jsonMatch[1]) {
              console.log("Found JSON within code block:", jsonMatch[1]); // Debug log
-             aiText = jsonMatch[1].trim();
+             textToParse = jsonMatch[1].trim(); // Use the content inside the code block
          } else {
              // If no code block, assume the entire response is the JSON string
              console.log("No JSON code block found, assuming entire response is JSON.");
-             aiText = aiText.trim();
+             textToParse = textToParse.trim();
          }
 
          // Attempt to parse the extracted (or original) text as JSON
-         parsedResponse = JSON.parse(aiText);
+         parsedResponse = JSON.parse(textToParse);
 
       } catch (parseError) {
           console.error("Error parsing AI response JSON:", parseError);
@@ -205,7 +250,8 @@ export default function GeneratorPage() {
           return;
       }
 
-      // Basic validation to ensure the expected structure exists
+      // --- Validation: Check if the parsed structure matches the expected format ---
+      // Use optional chaining (?.) and Array.isArray to safely check structure
       if (
           !parsedResponse ||
           !Array.isArray(parsedResponse.instagramCaptions) ||
@@ -218,17 +264,25 @@ export default function GeneratorPage() {
           typeof parsedResponse.visualContentGuide.whatsapp !== 'string' ||
           typeof parsedResponse.visualContentGuide.otherPlatforms !== 'string'
       ) {
-          console.error("AI response structure is invalid:", parsedResponse);
+          console.error("Parsed AI response structure is invalid:", parsedResponse);
           alert("AI mengembalikan struktur data yang tidak valid. Silakan coba lagi.");
           setLoading(false);
           return;
       }
 
+      // If parsing and validation succeed, set the results
       setResults(parsedResponse);
 
     } catch (error) {
-      console.error("Network or other error:", error);
-      alert("Terjadi kesalahan jaringan. Silakan coba lagi.");
+      console.error("Network, parsing, or other error in generateContent:", error);
+      // Check if the error is an instance of Error to access its message property
+      if (error instanceof Error) {
+          // If it's a standard Error object, show its message
+          alert(`Terjadi kesalahan jaringan atau parsing: ${error.message}`);
+      } else {
+          // If it's not a standard Error object (e.g., a primitive like a string), convert it to string or show a generic message
+          alert(`Terjadi kesalahan tak terduga: ${String(error)}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -236,7 +290,88 @@ export default function GeneratorPage() {
 
   // --- Helper Functions ---
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
+    // Use Clipboard API if available, otherwise fallback
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).catch(err => {
+            console.error('Failed to copy text: ', err);
+            // Fallback: Use execCommand if Clipboard API fails (older browsers or insecure contexts)
+            // This part is optional but increases robustness
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                const successful = document.execCommand('copy');
+                if (!successful) {
+                    console.warn("Fallback: ExecCommand copy failed.");
+                }
+            } catch (err) {
+                console.error("Fallback: ExecCommand copy threw an error:", err);
+            }
+            document.body.removeChild(textArea);
+        });
+    } else {
+        // Fallback for older browsers or insecure contexts (like HTTP)
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            const successful = document.execCommand('copy');
+            if (!successful) {
+                console.warn("Fallback: ExecCommand copy failed.");
+                alert("Gagal menyalin teks. Silakan salin secara manual.");
+            }
+        } catch (err) {
+            console.error("Fallback: ExecCommand copy threw an error:", err);
+            alert("Gagal menyalin teks. Silakan salin secara manual.");
+        }
+        document.body.removeChild(textArea);
+    }
+  };
+
+  const saveResult = (title: string, content: string) => {
+    try {
+      // Get the existing saved items from localStorage
+      const savedItemsString = localStorage.getItem("savedContent");
+      let savedItems: Array<{ id: number; title: string; content: string; date: string }> = [];
+
+      if (savedItemsString) {
+        // Attempt to parse the string
+        const parsedItems = JSON.parse(savedItemsString);
+        // Check if the parsed result is an array
+        if (Array.isArray(parsedItems)) {
+            savedItems = parsedItems; // Assign the parsed array to the mutable variable
+        } else {
+            console.warn("savedContent in localStorage was not an array, initializing as empty array.");
+            // If it's not an array, initialize with an empty array
+            savedItems = [];
+        }
+      } else {
+        // If no item was found in localStorage, initialize with an empty array
+        console.log("No savedContent found in localStorage, initializing as empty array.");
+        savedItems = [];
+      }
+
+      // Add the new item to the array
+      savedItems.push({
+        id: Date.now(), // Use timestamp as a simple unique ID
+        title,
+        content,
+        date: new Date().toISOString(), // Store the date in ISO string format
+      });
+
+      // Save the updated array back to localStorage
+      localStorage.setItem("savedContent", JSON.stringify(savedItems));
+      console.log("Saved item to localStorage:", { title, content });
+
+    } catch (error) {
+      console.error("Error saving result to localStorage:", error);
+      // Optionally, show an alert to the user
+      alert("Terjadi kesalahan saat menyimpan konten. Silakan coba lagi.");
+    }
   };
 
   // --- Result Card Component ---
@@ -251,8 +386,21 @@ export default function GeneratorPage() {
     );
   };
 
+  // --- Conditional Rendering based on initial load ---
+  if (!initialLoadComplete) {
+    // Show a loading spinner or placeholder while loading setup data
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-neutral-400 mt-4">Memuat...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 py-12 animate-fade-in">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 py-12">
       {/* Decorative elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         {/* Decorative elements for Setup Section */}
@@ -274,7 +422,6 @@ export default function GeneratorPage() {
         {/* Setup Section */}
         {!setupComplete && (
           <div className="animate-fade-in">
-            {/* Clear title for Setup */}
             <h1 className="text-3xl font-bold text-center text-yellow-500 mb-8">Setup Bisnis UMKM</h1>
             <Card className="shadow-2xl bg-neutral-900/50 backdrop-blur-sm border-neutral-800">
               <CardHeader>
@@ -356,7 +503,6 @@ export default function GeneratorPage() {
         {/* Generation Section */}
         {setupComplete && (
           <div className="animate-fade-in">
-            {/* Clear title for Generation */}
             <h1 className="text-3xl font-bold text-center text-yellow-500 mb-8">Content Generator</h1>
 
             <Card className="mb-8 shadow-2xl bg-neutral-900/50 backdrop-blur-sm border-neutral-800">
@@ -411,7 +557,7 @@ export default function GeneratorPage() {
                     className="border-neutral-700 data-[state=checked]:bg-yellow-500 data-[state=checked]:text-neutral-900"
                   />
                   <Label htmlFor="localDialect" className="text-neutral-200">
-                    Gunakan Bahasa Daerah (Jawa - "Karena JAWA adalah Koentji")
+                    Gunakan Bahasa Daerah (Jawa / Sunda)
                   </Label>
                 </div>
 
@@ -445,6 +591,16 @@ export default function GeneratorPage() {
                               >
                                 <Copy className="w-4 h-4 mr-1" /> Salin
                               </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  saveResult(`Caption Instagram ${index + 1}`, caption)
+                                }
+                                className="flex items-center border-yellow-500 text-neutral-200 hover:bg-yellow-500 hover:text-neutral-900"
+                              >
+                                <Save className="w-4 h-4 mr-1" /> Simpan
+                              </Button>
                             </div>
                           </div>
                         )
@@ -467,6 +623,16 @@ export default function GeneratorPage() {
                         >
                           <Copy className="w-4 h-4 mr-1" /> Salin
                         </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            saveResult("Hashtag", results.hashtags?.join(" "))
+                          }
+                          className="flex items-center border-yellow-500 text-neutral-200 hover:bg-yellow-500 hover:text-neutral-900"
+                        >
+                          <Save className="w-4 h-4 mr-1" /> Simpan
+                        </Button>
                       </div>
                     </div>
                   }
@@ -488,12 +654,25 @@ export default function GeneratorPage() {
                         >
                           <Copy className="w-4 h-4 mr-1" /> Salin
                         </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            saveResult(
+                              "Deskripsi Marketplace",
+                              results.marketplaceDescription
+                            )
+                          }
+                          className="flex items-center border-yellow-500 text-neutral-200 hover:bg-yellow-500 hover:text-neutral-900"
+                        >
+                          <Save className="w-4 h-4 mr-1" /> Simpan
+                        </Button>
                       </div>
                     </div>
                   }
                 />
 
-                {/* Visual Content Guide Card */}
+                {/* Visual Content Guide Card (Simplified - No Image Gen) */}
                 <ResultCard
                   title="Panduan Konten Visual"
                   content={
@@ -513,6 +692,14 @@ export default function GeneratorPage() {
                                     className="flex items-center border-yellow-500 text-neutral-200 hover:bg-yellow-500 hover:text-neutral-900"
                                   >
                                     <Copy className="w-4 h-4 mr-1" /> Salin
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => saveResult(`Visual IG Gambar ${index + 1}`, idea)}
+                                    className="flex items-center border-yellow-500 text-neutral-200 hover:bg-yellow-500 hover:text-neutral-900"
+                                  >
+                                    <Save className="w-4 h-4 mr-1" /> Simpan
                                   </Button>
                                 </div>
                               </div>
@@ -537,6 +724,14 @@ export default function GeneratorPage() {
                                   >
                                     <Copy className="w-4 h-4 mr-1" /> Salin
                                   </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => saveResult(`Visual IG Reels ${index + 1}`, idea)}
+                                    className="flex items-center border-yellow-500 text-neutral-200 hover:bg-yellow-500 hover:text-neutral-900"
+                                  >
+                                    <Save className="w-4 h-4 mr-1" /> Simpan
+                                  </Button>
                                 </div>
                               </div>
                             ))}
@@ -558,6 +753,14 @@ export default function GeneratorPage() {
                               >
                                 <Copy className="w-4 h-4 mr-1" /> Salin
                               </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => saveResult("Visual WhatsApp", results.visualContentGuide.whatsapp)}
+                                className="flex items-center border-yellow-500 text-neutral-200 hover:bg-yellow-500 hover:text-neutral-900"
+                              >
+                                <Save className="w-4 h-4 mr-1" /> Simpan
+                              </Button>
                             </div>
                           </div>
                         </div>
@@ -576,6 +779,14 @@ export default function GeneratorPage() {
                                 className="flex items-center border-yellow-500 text-neutral-200 hover:bg-yellow-500 hover:text-neutral-900"
                               >
                                 <Copy className="w-4 h-4 mr-1" /> Salin
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => saveResult("Visual Platform Lain", results.visualContentGuide.otherPlatforms)}
+                                className="flex items-center border-yellow-500 text-neutral-200 hover:bg-yellow-500 hover:text-neutral-900"
+                              >
+                                <Save className="w-4 h-4 mr-1" /> Simpan
                               </Button>
                             </div>
                           </div>
@@ -602,6 +813,16 @@ export default function GeneratorPage() {
                               >
                                 <Copy className="w-4 h-4 mr-1" /> Salin
                               </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  saveResult(`Sudut Pandang ${index + 1}`, angle)
+                                }
+                                className="flex items-center border-yellow-500 text-neutral-200 hover:bg-yellow-500 hover:text-neutral-900"
+                              >
+                                <Save className="w-4 h-4 mr-1" /> Simpan
+                              </Button>
                             </div>
                           </div>
                         )
@@ -622,7 +843,7 @@ export default function GeneratorPage() {
           className="w-14 h-14 rounded-full bg-yellow-500 hover:bg-yellow-600 text-neutral-900 shadow-lg shadow-yellow-500/20 transition-all hover:shadow-yellow-500/40"
           aria-label="Open Chat"
         >
-          <MessageCircle className="w-6 h-6" />
+          💬 {/* Emoji or icon for chat */}
         </Button>
       </div>
 
