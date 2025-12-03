@@ -1,8 +1,6 @@
 // src/app/generator/page.tsx
 
-"use client";
-
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,8 +13,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Copy, Save } from "lucide-react"; // Removed MessageCircle as it's used in FAB
+// Removed Checkbox as it's no longer needed for local dialect
+// import { Checkbox } from "@/components/ui/checkbox"; // <-- Removed import
+import { Copy, Save, MessageCircle } from "lucide-react"; // Added MessageCircle icon
 import ChatPopup from "@/components/ChatPopup"; // Assuming you have this component
 
 export default function GeneratorPage() {
@@ -34,7 +33,8 @@ export default function GeneratorPage() {
   const [productName, setProductName] = useState("");
   const [productDescription, setProductDescription] = useState("");
   const [goal, setGoal] = useState("");
-  const [useLocalDialect, setUseLocalDialect] = useState(false);
+  // Removed useLocalDialect state
+  // const [useLocalDialect, setUseLocalDialect] = useState(false); // <-- Removed state
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<any>(null);
 
@@ -73,8 +73,8 @@ export default function GeneratorPage() {
         // Optionally alert the user, though this might be disruptive on first load
         // alert("Terjadi kesalahan saat memuat data setup sebelumnya. Silakan isi ulang.");
       } finally {
-          // Mark the initial load as complete after attempting to load data
-          setInitialLoadComplete(true);
+        // Mark the initial load as complete after attempting to load data
+        setInitialLoadComplete(true);
       }
     };
 
@@ -130,13 +130,7 @@ export default function GeneratorPage() {
         - Deskripsi Produk: ${productDescription || "Tidak ada deskripsi tambahan."}
         - Tujuan konten: ${goal}
 
-        ${
-          useLocalDialect
-            ? "Silakan sertakan opsi frasa atau gaya bahasa daerah (Jawa/Sunda) jika relevan untuk menjangkau pasar lokal."
-            : ""
-        }
-
-        Mohon hasilkan konten pemasaran berikut dalam format JSON (Penulisan konten harus diatas beberapa kalimat, hindari jawaban singkat):
+        Mohon hasilkan konten pemasaran berikut dalam FORMAT JSON YANG VALID. PENTING: TIDAK ADA TEKS PENJELASAN SEBELUM ATAU SESUDAHNYA. TIDAK ADA KODE BLOK MARKDOWN (\`)\`json...(\`)\`). LANGSUNG KELUARKAN OBJEK JSONNYA SAJA. (Penulisan konten harus diatas beberapa kalimat, hindari jawaban singkat, dan pastikan isi konten cukup panjang dan informatif.)
         {
           "instagramCaptions": ["caption versi 1...", "caption versi 2...", "caption versi 3..."],
           "hashtags": ["#hashtag1", "#hashtag2", "#hashtag3", "#hashtag4", "#hashtag5"],
@@ -245,13 +239,12 @@ export default function GeneratorPage() {
       } catch (parseError) {
           console.error("Error parsing AI response JSON:", parseError);
           console.error("AI Response Text (for debugging):", data.response); // Log the raw text that failed to parse
-          alert("AI mengembalikan format data yang tidak valid. Silakan coba lagi.");
+          alert("AI mengembalikan format data JSON yang tidak valid. Silakan coba lagi.");
           setLoading(false);
           return;
       }
 
-      // --- Validation: Check if the parsed structure matches the expected format ---
-      // Use optional chaining (?.) and Array.isArray to safely check structure
+      // --- VALIDATION: Check if the parsed structure matches the expected format ---
       if (
           !parsedResponse ||
           !Array.isArray(parsedResponse.instagramCaptions) ||
@@ -334,43 +327,35 @@ export default function GeneratorPage() {
 
   const saveResult = (title: string, content: string) => {
     try {
-      // Get the existing saved items from localStorage
-      const savedItemsString = localStorage.getItem("savedContent");
-      let savedItems: Array<{ id: number; title: string; content: string; date: string }> = [];
+        const savedItemsString = localStorage.getItem("savedContent");
+        let savedItems: Array<{ id: number; title: string; content: string; date: string }> = [];
 
-      if (savedItemsString) {
-        // Attempt to parse the string
-        const parsedItems = JSON.parse(savedItemsString);
-        // Check if the parsed result is an array
-        if (Array.isArray(parsedItems)) {
-            savedItems = parsedItems; // Assign the parsed array to the mutable variable
+        if (savedItemsString) {
+          const parsedItems = JSON.parse(savedItemsString);
+          if (Array.isArray(parsedItems)) {
+              savedItems = parsedItems;
+          } else {
+              console.warn("savedContent in localStorage was not an array, initializing as empty array.");
+              savedItems = [];
+          }
         } else {
-            console.warn("savedContent in localStorage was not an array, initializing as empty array.");
-            // If it's not an array, initialize with an empty array
-            savedItems = [];
+          console.log("No savedContent found in localStorage, initializing as empty array.");
+          savedItems = [];
         }
-      } else {
-        // If no item was found in localStorage, initialize with an empty array
-        console.log("No savedContent found in localStorage, initializing as empty array.");
-        savedItems = [];
-      }
 
-      // Add the new item to the array
-      savedItems.push({
-        id: Date.now(), // Use timestamp as a simple unique ID
-        title,
-        content,
-        date: new Date().toISOString(), // Store the date in ISO string format
-      });
+        savedItems.push({
+          id: Date.now(), // Use timestamp as a simple unique ID
+          title,
+          content,
+          date: new Date().toISOString(), // Store the date in ISO string format
+        });
 
-      // Save the updated array back to localStorage
-      localStorage.setItem("savedContent", JSON.stringify(savedItems));
-      console.log("Saved item to localStorage:", { title, content });
+        localStorage.setItem("savedContent", JSON.stringify(savedItems));
+        console.log("Saved item to localStorage:", { title, content });
 
     } catch (error) {
-      console.error("Error saving result to localStorage:", error);
-      // Optionally, show an alert to the user
-      alert("Terjadi kesalahan saat menyimpan konten. Silakan coba lagi.");
+        console.error("Error saving result to localStorage:", error);
+        alert("Terjadi kesalahan saat menyimpan konten. Silakan coba lagi.");
     }
   };
 
@@ -549,7 +534,8 @@ export default function GeneratorPage() {
                   />
                 </div>
 
-                <div className="mt-4 flex items-center space-x-2">
+                {/* Removed Local Dialect Checkbox */}
+                {/* <div className="mt-4 flex items-center space-x-2">
                   <Checkbox
                     id="localDialect"
                     checked={useLocalDialect}
@@ -559,7 +545,7 @@ export default function GeneratorPage() {
                   <Label htmlFor="localDialect" className="text-neutral-200">
                     Gunakan Bahasa Daerah (Jawa / Sunda)
                   </Label>
-                </div>
+                </div> */}
 
                 <Button
                   onClick={generateContent}
@@ -836,14 +822,14 @@ export default function GeneratorPage() {
         )}
       </div>
 
-      {/* Floating Action Button (FAB) for Chat */}
+      {/* Floating Action Button (FAB) for Chat (using MessageCircle icon) */}
       <div className="fixed bottom-8 right-8 z-20">
         <Button
           onClick={() => setShowChat(true)}
           className="w-14 h-14 rounded-full bg-yellow-500 hover:bg-yellow-600 text-neutral-900 shadow-lg shadow-yellow-500/20 transition-all hover:shadow-yellow-500/40"
           aria-label="Open Chat"
         >
-          💬 {/* Emoji or icon for chat */}
+          <MessageCircle className="w-6 h-6" /> {/* Use the MessageCircle icon */}
         </Button>
       </div>
 
@@ -859,7 +845,6 @@ export default function GeneratorPage() {
             productName,
             productDescription,
             goal,
-            useLocalDialect,
             generatedResults: results,
           }}
         />

@@ -15,7 +15,6 @@ type ContextType = {
   productName: string;
   productDescription: string;
   goal: string;
-  useLocalDialect: boolean;
   generatedResults: any; // Or define a more specific type if needed
 };
 
@@ -127,11 +126,6 @@ export default function ChatPopup({ onClose, context }: { onClose: () => void; c
         - Nama Produk: ${initialContext.productName}
         - Deskripsi Produk: ${initialContext.productDescription || "Tidak ada deskripsi tambahan."}
         - Tujuan konten: ${initialContext.goal}
-        ${
-          initialContext.useLocalDialect
-            ? "Pengguna memilih menggunakan bahasa daerah (Jawa/Sunda)."
-            : ""
-        }
 
         Riwayat percakapan sebelumnya:
         ${messages.map(msg => `${msg.role.toUpperCase()}: ${msg.content}`).join("\n")}
