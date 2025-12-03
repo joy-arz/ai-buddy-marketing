@@ -108,7 +108,7 @@ export default function GeneratorPage() {
             : ""
         }
 
-        INGAT: Hasilkan KONTEN PEMASARAN BERIKUT DALAM FORMAT JSON YANG VALID. TIDAK ADA TEKS PENJELASAN SEBELUM ATAU SESUDAHNYA. TIDAK ADA KODE BLOK MARKDOWN. LANGSUNG KELUARKAN OBJEK JSONNYA SAJA. (Hasil generated content juga harus panjang sesuai dengan kebutuhan masing-masing bagian. minimal diatas 6 kalimat untuk setiap caption, deskripsi, dan sudut pandang marketing. Untuk ide visual, berikan deskripsi yang cukup detail untuk setiap ide konten visual, minimal 6 kalimat.)
+        INGAT: Hasilkan KONTEN PEMASARAN BERIKUT DALAM FORMAT JSON YANG VALID. TIDAK ADA TEKS PENJELASAN SEBELUM ATAU SESUDAHNYA. TIDAK ADA KODE BLOK MARKDOWN. LANGSUNG KELUARKAN OBJEK JSONNYA SAJA. (Hasil generated content juga harus panjang sesuai dengan kebutuhan masing-masing bagian. minimal diatas 4 - 6 kalimat untuk setiap caption, deskripsi, dan sudut pandang marketing. Untuk ide visual, berikan deskripsi yang cukup detail untuk setiap ide konten visual, minimal 6 kalimat.)
         {
           "instagramCaptions": ["caption versi 1...", "caption versi 2...", "caption versi 3..."],
           "hashtags": ["#hashtag1", "#hashtag2", "#hashtag3", "#hashtag4", "#hashtag5"],
