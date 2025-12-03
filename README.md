@@ -92,7 +92,7 @@ The application leverages AI to automate the content creation process, saving ti
 
 ## 📸 Screenshots
 
-![Landing Page](screenshots/landing_page.png)
+![Landing Page](screenshots/preview.png)
 _Landing Page_
 
 ![Generator Page](screenshots/generator_page.png)
