@@ -1,5 +1,6 @@
 # AI Marketing Buddy for UMKM
-(screenshots/preview.png)
+![Landing Page](screenshots/preview.png)
+
 
 A web application designed to help Indonesian UMKM (Usaha Mikro, Kecil, dan Menengah) generate high-quality marketing content using AI.
 
