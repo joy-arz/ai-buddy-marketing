@@ -167,4 +167,4 @@ When you deploy your application to Vercel, you **store your API keys securely w
 
 **Where to Store API Keys for Deployment:**
 
-*   **✅ Vercel Environment Variables:** This is the standard and secure way when deploying to Vercel. You add the keys in the Vercel dashboard for your project. Your application code reads them using `process.env.CEREBRAS_API_KEY` (or similar) just like it did locally, but now the values come from Vercel's secure environment.
+*   **✅ Vercel Environment Variables:** This is the standard and secure way when deploying to Vercel. You add the keys in the Vercel dashboard for your project. Your application code reads them using `process.env.CEREBRAS_API_KEY` (or similar) just like it did locally, but now the values come from Vercel's secure environment.# ai-buddy-marketing
